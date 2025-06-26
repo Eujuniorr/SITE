@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Downloader de Vídeos Universal V2</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Biblioteca de ícones Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Fonte do Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Estilos personalizados para um visual "premium" */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Animação para o spinner de carregamento */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-left-color: #3b82f6; /* Cor de destaque */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        /* Estilo para a aba da plataforma ativa */
+        .tab-active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        /* Animação para os resultados aparecerem suavemente */
+        @keyframes fadeInSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .fade-in-slide-up {
+            animation: fadeInSlideUp 0.5s ease-out forwards;
+        }
+
+        /* Transições suaves para todos os elementos interativos */
+        .transition-all {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-gray-900 via-gray-900 to-indigo-900">
+
+    <main class="w-full max-w-2xl mx-auto">
+        <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl shadow-2xl p-6 md:p-8">
+            
+            <div class="text-center mb-8">
+                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Downloader Universal</h1>
+                <p class="text-gray-400">Cole um link para baixar vídeos de alta qualidade.</p>
+            </div>
+
+            <div id="platform-tabs" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <!-- As abas são as mesmas da versão anterior -->
+                <button data-platform="youtube" class="tab-active flex items-center justify-center gap-2 p-3 border-2 border-gray-600 rounded-lg transition-all hover:bg-red-600/20 hover:border-red-500">
+                    <i class="ph-bold ph-youtube-logo text-2xl"></i> <span class="font-semibold">YouTube</span>
+                </button>
+                <button data-platform="tiktok" class="flex items-center justify-center gap-2 p-3 border-2 border-gray-600 rounded-lg transition-all hover:bg-purple-600/20 hover:border-purple-500">
+                    <i class="ph-bold ph-tiktok-logo text-2xl"></i> <span class="font-semibold">TikTok</span>
+                </button>
+                <button data-platform="facebook" class="flex items-center justify-center gap-2 p-3 border-2 border-gray-600 rounded-lg transition-all hover:bg-blue-600/20 hover:border-blue-500">
+                    <i class="ph-bold ph-facebook-logo text-2xl"></i> <span class="font-semibold">Facebook</span>
+                </button>
+                <button data-platform="pinterest" class="flex items-center justify-center gap-2 p-3 border-2 border-gray-600 rounded-lg transition-all hover:bg-pink-600/20 hover:border-pink-500">
+                    <i class="ph-bold ph-pinterest-logo text-2xl"></i> <span class="font-semibold">Pinterest</span>
+                </button>
+            </div>
+
+            <!-- Formulário de Input com Botão "Colar" -->
+            <div class="relative flex flex-col md:flex-row gap-3">
+                <div class="relative flex-grow">
+                     <input type="url" id="video-url" placeholder="Cole o link do vídeo do YouTube aqui..." class="w-full bg-gray-700/80 text-white placeholder-gray-400 border-2 border-gray-600 rounded-lg pl-4 pr-12 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all">
+                     <button id="paste-btn" title="Colar da área de transferência" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
+                         <i class="ph-bold ph-clipboard-text text-2xl"></i>
+                     </button>
+                </div>
+                <button id="download-btn" class="flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-800 transition-all transform hover:scale-105">
+                    <i class="ph-bold ph-arrow-down"></i>
+                    <span>Baixar</span>
+                </button>
+            </div>
+
+            <!-- Área de Resultados (inicialmente oculta) -->
+            <div id="results-container" class="mt-8 min-h-[150px]">
+                <div id="loading-spinner" class="hidden flex flex-col items-center justify-center text-center">
+                    <div class="spinner"></div>
+                    <p class="mt-4 text-lg font-semibold text-gray-300">Processando o seu vídeo...</p>
+                </div>
+
+                <div id="error-message-container" class="hidden"></div>
+                <div id="success-card-container" class="hidden"></div>
+            </div>
+        </div>
+
+        <footer class="text-center mt-6">
+            <p class="text-gray-500 text-sm">
+                Atenção: Faça o download apenas de vídeos para os quais possui permissão. Respeite os direitos autorais.
+            </p>
+        </footer>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const platformTabs = document.getElementById('platform-tabs');
+            const urlInput = document.getElementById('video-url');
+            const pasteBtn = document.getElementById('paste-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const resultsContainer = document.getElementById('results-container');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const errorContainer = document.getElementById('error-message-container');
+            const successContainer = document.getElementById('success-card-container');
+
+            let activePlatform = 'youtube';
+            const placeholders = { /* ... (mesmo da v1) ... */ };
+
+            // --- Lógica das Abas (igual à v1) ---
+            platformTabs.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+                const platform = button.dataset.platform;
+                if (platform) {
+                    activePlatform = platform;
+                    platformTabs.querySelectorAll('button').forEach(btn => btn.classList.remove('tab-active'));
+                    button.classList.add('tab-active');
+                    urlInput.placeholder = placeholders[activePlatform] || `Cole o link do ${platform} aqui...`;
+                }
+            });
+
+            // --- NOVO: Botão Colar ---
+            pasteBtn.addEventListener('click', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    urlInput.value = text;
+                    urlInput.focus();
+                } catch (err) {
+                    alert('Não foi possível ler a área de transferência. Por favor, cole manualmente.');
+                }
+            });
+
+            // --- Lógica do Botão de Download ---
+            downloadBtn.addEventListener('click', () => {
+                const url = urlInput.value.trim();
+                if (!url) {
+                    showError('Por favor, insira um URL para continuar.');
+                    return;
+                }
+                resetUI(true); // Mantém o input, mas limpa resultados antigos
+                loadingSpinner.classList.remove('hidden');
+                loadingSpinner.classList.add('flex');
+                downloadBtn.disabled = true;
+                downloadBtn.classList.add('opacity-50');
+
+                // !! SIMULAÇÃO DE CHAMADA AO BACKEND !!
+                setTimeout(() => {
+                    const mockData = {
+                        title: 'Vídeo de Demonstração Incrível',
+                        thumbnail: 'https://placehold.co/320x180/1f2937/4b5563?text=V%C3%ADdeo+Pronto',
+                        formats: [
+                            { quality: '1080p', type: 'MP4', size: '120 MB' },
+                            { quality: '720p', type: 'MP4', size: '65 MB' },
+                            { quality: 'MP3', type: 'Audio', size: '5 MB' },
+                        ]
+                    };
+                    showSuccess(mockData);
+                }, 2500);
+            });
+            
+            function showSuccess(data) {
+                loadingSpinner.classList.add('hidden');
+                successContainer.innerHTML = `
+                    <div class="fade-in-slide-up bg-gray-800 border border-gray-700 rounded-lg p-4 flex flex-col md:flex-row items-center gap-5">
+                        <img src="${data.thumbnail}" alt="Video Thumbnail" class="w-full md:w-40 h-auto rounded-md shadow-lg">
+                        <div class="flex-1 text-center md:text-left">
+                            <h3 class="text-xl font-bold text-white mb-3">${data.title}</h3>
+                            <div class="flex flex-wrap justify-center md:justify-start gap-3">
+                                ${data.formats.map(f => `<button onclick="alert('Iniciando download de ${f.quality}!')" class="bg-gray-700 text-gray-200 px-4 py-2 rounded-md text-sm font-semibold hover:bg-blue-600 transition-all">${f.type} ${f.quality} <span class='text-gray-400'>(${f.size})</span></button>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fade-in-slide-up mt-4 text-center">
+                        <button id="reset-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-all">Baixar Outro Vídeo</button>
+                    </div>
+                `;
+                successContainer.classList.remove('hidden');
+                document.getElementById('reset-btn').addEventListener('click', () => resetUI(false));
+                reEnableDownloadButton();
+            }
+
+            function showError(message) {
+                loadingSpinner.classList.add('hidden');
+                errorContainer.innerHTML = `
+                    <div class="fade-in-slide-up bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg text-center">
+                        <p>${message}</p>
+                        <button id="reset-btn-error" class="mt-3 bg-red-800 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-all">Tentar Novamente</button>
+                    </div>
+                `;
+                errorContainer.classList.remove('hidden');
+                document.getElementById('reset-btn-error').addEventListener('click', () => resetUI(false));
+                reEnableDownloadButton();
+            }
+
+            function reEnableDownloadButton() {
+                downloadBtn.disabled = false;
+                downloadBtn.classList.remove('opacity-50');
+            }
+            
+            function resetUI(keepInput = false) {
+                if (!keepInput) {
+                    urlInput.value = '';
+                }
+                loadingSpinner.classList.add('hidden');
+                errorContainer.classList.add('hidden');
+                successContainer.classList.add('hidden');
+                errorContainer.innerHTML = '';
+                successContainer.innerHTML = '';
+                reEnableDownloadButton();
+            }
+        });
+    </script>
+</body>
+</html>
