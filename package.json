@@ -1,0 +1,11 @@
+{
+  "name": "meu-site-com-backend",
+  "version": "1.0.0",
+  "description": "Um site com frontend e backend na Vercel",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
